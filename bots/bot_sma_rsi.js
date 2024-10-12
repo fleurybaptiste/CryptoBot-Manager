@@ -2,8 +2,7 @@ const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 const fs = require("fs");
 const csv = require("csv-parser");
 
-// calcule la moyenne mobile simple d’une cryptomonnaie
-
+// Calcule la moyenne mobile simple d’une cryptomonnaie
 const calculateSMA = (prices, period) => {
     let sma = [];
     for (let i = 0; i < prices.length; i++) {
@@ -26,11 +25,38 @@ const runSMA_RSI = async () => {
     // Lire les prix à partir du fichier CSV généré précédemment
     let prices = [];
     let dates = [];
+    let volumes = [];
+    let market_caps = [];
 
     fs.createReadStream("crypto_data.csv")
         .pipe(csv())
         .on("data", (row) => {
-            prices.push(parseFloat(row["Price (USD)"]));
+            const price = parseFloat(row["Price (USD)"]);
+            const volume_24h = parseFloat(row["24h Volume (USD)"]);
+            const market_cap = parseFloat(row["Market Cap (USD)"]);
+
+            if (!isNaN(price)) {
+                prices.push(price);
+            } else {
+                console.warn(`Warning: Invalid price: ${row["Price (USD)"]}`);
+            }
+
+            if (!isNaN(volume_24h)) {
+                volumes.push(volume_24h);
+            } else {
+                console.warn(
+                    `Warning: Invalid volume: ${row["24h Volume (USD)"]}`,
+                );
+            }
+
+            if (!isNaN(market_cap)) {
+                market_caps.push(market_cap);
+            } else {
+                console.warn(
+                    `Warning: Invalid market cap: ${row["Market Cap (USD)"]}`,
+                );
+            }
+
             dates.push(row.Cryptocurrency);
         })
         .on("end", () => {
@@ -45,6 +71,8 @@ const runSMA_RSI = async () => {
                 header: [
                     { id: "date", title: "Cryptocurrency" },
                     { id: "price", title: "Price (USD)" },
+                    { id: "volume", title: "24h Volume (USD)" },
+                    { id: "market_cap", title: "Market Cap (USD)" },
                     { id: "sma", title: "SMA (10)" },
                 ],
             });
@@ -52,6 +80,8 @@ const runSMA_RSI = async () => {
             const records = dates.map((date, index) => ({
                 date: date,
                 price: prices[index],
+                volume: volumes[index],
+                market_cap: market_caps[index],
                 sma: sma[index],
             }));
 
